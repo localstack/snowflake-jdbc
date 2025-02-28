@@ -1,0 +1,64 @@
+name: LocalStack JDBC Tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  test-localstack:
+    name: Run JDBC Tests against LocalStack
+    runs-on: ubuntu-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        java-version: ['11']
+        # TODO: add more categories
+        category: ['TestCategoryConnection,TestCategoryCore','TestCategoryStatement,TestCategoryResultSet']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java-version }}
+          distribution: 'temurin'
+
+      - name: Start up LocalStack Snowflake
+        env:
+          LOCALSTACK_API_KEY: ${{ secrets.LOCALSTACK_API_KEY }}
+        run: |
+          image_name=localstack/snowflake
+          docker pull $image_name &
+          pip install localstack
+          IMAGE_NAME=$image_name DEBUG=1 DOCKER_FLAGS='-e SF_LOG=trace' localstack start -d
+          localstack wait
+
+      - name: Print LocalStack logs
+        if: ${{ success() || failure() }}
+        run: localstack logs
+
+      - name: Run JDBC Tests
+        env:
+          SNOWFLAKE_TEST_HOST: snowflake.localhost.localstack.cloud
+          SNOWFLAKE_TEST_ACCOUNT: test
+          SNOWFLAKE_TEST_USER: test
+          SNOWFLAKE_TEST_PASSWORD: test
+          SNOWFLAKE_TEST_DATABASE: test
+          SNOWFLAKE_TEST_SCHEMA: test
+          SNOWFLAKE_TEST_WAREHOUSE: test
+          SNOWFLAKE_TEST_ROLE: test
+          SNOWFLAKE_TEST_PORT: 4566
+        run: |
+          mvn -DjenkinsIT -DtestCategory=net.snowflake.client.category.${{ matrix.category }} verify 
