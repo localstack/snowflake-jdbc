@@ -9,6 +9,11 @@ on:
       - master
   workflow_dispatch:
 
+# TODO: add more tests classes here
+env:
+  test_classes: 'ConnectionIT,CoreIT,MultiStatementIT,ParameterBindingIT,PreparedMultiStmtIT,ResultSetIT,SnowflakeDriverIT,StatementArrowIT,StatementIT,TransactionIT'
+  
+
 jobs:
   test-localstack:
     name: Run JDBC Tests against LocalStack
@@ -18,19 +23,6 @@ jobs:
       fail-fast: false
       matrix:
         java-version: ['11']
-        #TODO: add more tests classes here
-        category: [
-          'ConnectionIT',
-          'CoreIT',
-          'MultiStatementIT',
-          'ParameterBindingIT',
-          'PreparedMultiStmtIT',
-          'ResultSetIT',
-          'SnowflakeDriverIT',
-          'StatementArrowIT',
-          'StatementIT',
-          'TransactionIT'
-        ]
 
     steps:
       - uses: actions/checkout@v4
@@ -72,4 +64,4 @@ jobs:
           SNOWFLAKE_TEST_ROLE: test
           SNOWFLAKE_TEST_PORT: 4566
         run: |
-          mvn verify -Dtest=net.snowflake.client.jdbc.${{ matrix.category }}
+          mvn verify -Dtest=net.snowflake.client.jdbc.${{ env.test_classes }}
