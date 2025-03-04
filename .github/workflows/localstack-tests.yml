@@ -48,10 +48,6 @@ jobs:
           IMAGE_NAME=$image_name DEBUG=1 DOCKER_FLAGS='-e SF_LOG=trace' localstack start -d
           localstack wait
 
-      - name: Print LocalStack logs
-        if: ${{ success() || failure() }}
-        run: localstack logs
-
       - name: Run Integration Tests
         env:
           SNOWFLAKE_TEST_HOST: snowflake.localhost.localstack.cloud
@@ -65,3 +61,7 @@ jobs:
           SNOWFLAKE_TEST_PORT: 4566
         run: |
           mvn verify -Dtest=net.snowflake.client.jdbc.${{ env.test_classes }}
+
+      - name: Print LocalStack logs
+        if: ${{ success() || failure() }}
+        run: localstack logs
